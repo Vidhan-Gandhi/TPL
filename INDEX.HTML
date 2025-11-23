@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TPL Player Stats</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background-image: url("https://img1.hscicdn.com/image/upload/f_auto,t_ds_wide_w_640,q_50/lsci/db/PICTURES/CMS/86300/86316.jpg");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 30px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.3);
+      width: 90%;
+      max-width: 900px;
+      backdrop-filter: blur(6px);
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #222;
+    }
+
+    .form-container {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      outline: none;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
+      background: #0078d7;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #005fa3;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      text-align: center;
+      padding: 8px;
+      background-color: rgba(255, 255, 255, 0.85);
+    }
+
+    th {
+      background-color: #0078d7;
+      color: white;
+    }
+
+    tr:nth-child(even) td {
+      background-color: rgba(240, 240, 240, 0.9);
+    }
+
+    .delete-btn {
+      background: red;
+    }
+
+    .update-btn {
+      background: green;
+    }
+
+    .delete-btn, .update-btn {
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+      margin: 2px;
+    }
+
+    .delete-btn:hover {
+      background: darkred;
+    }
+
+    .update-btn:hover {
+      background: darkgreen;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏆 TPL Player Stats</h1>
+
+    <div class="form-container">
+      <input type="text" id="playerName" placeholder="Player Name" />
+      <input type="number" id="matches" placeholder="Matches" />
+      <input type="number" id="runs" placeholder="Runs" />
+      <input type="number" id="wickets" placeholder="Wickets" />
+      <button id="addPlayerBtn">Add Player</button>
+    </div>
+
+    <h2>All Players</h2>
+    <table id="playerTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Matches</th>
+          <th>Runs</th>
+          <th>Avg Runs</th>
+          <th>Wickets</th>
+          <th>Performance</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const addPlayerBtn = document.getElementById("addPlayerBtn");
+    const tableBody = document.getElementById("tableBody");
+
+    // separate storage key for TPL
+    let players = JSON.parse(localStorage.getItem("tplPlayers")) || [];
+
+    function calcPerformance(p) {
+      return p.runs + p.wickets * 20; // weighted performance
+    }
+
+    function renderTable() {
+      players.sort((a, b) => calcPerformance(b) - calcPerformance(a));
+
+      tableBody.innerHTML = "";
+      players.forEach((p, index) => {
+        const avg = p.matches > 0 ? (p.runs / p.matches).toFixed(2) : 0;
+        const perf = calcPerformance(p);
+        const row = `
+          <tr>
+            <td>${p.name}</td>
+            <td>${p.matches}</td>
+            <td>${p.runs}</td>
+            <td>${avg}</td>
+            <td>${p.wickets}</td>
+            <td><b>${perf}</b></td>
+            <td>
+              <button class="update-btn" onclick="updatePlayer(${index})">Update</button>
+              <button class="delete-btn" onclick="deletePlayer(${index})">Delete</button>
+            </td>
+          </tr>
+        `;
+        tableBody.innerHTML += row;
+      });
+    }
+
+    function saveToLocal() {
+      localStorage.setItem("tplPlayers", JSON.stringify(players));
+    }
+
+    addPlayerBtn.addEventListener("click", () => {
+      const name = document.getElementById("playerName").value.trim();
+      const matches = Number(document.getElementById("matches").value);
+      const runs = Number(document.getElementById("runs").value);
+      const wickets = Number(document.getElementById("wickets").value);
+
+      if (!name) {
+        alert("Please enter a player name");
+        return;
+      }
+
+      players.push({ name, matches, runs, wickets });
+      saveToLocal();
+      renderTable();
+
+      document.getElementById("playerName").value = "";
+      document.getElementById("matches").value = "";
+      document.getElementById("runs").value = "";
+      document.getElementById("wickets").value = "";
+    });
+
+    function deletePlayer(index) {
+      if (confirm("Delete this player?")) {
+        players.splice(index, 1);
+        saveToLocal();
+        renderTable();
+      }
+    }
+
+    function updatePlayer(index) {
+      const addMatches = Number(prompt("Enter matches to add:", "0"));
+      const addRuns = Number(prompt("Enter runs to add:", "0"));
+      const addWickets = Number(prompt("Enter wickets to add:", "0"));
+
+      if (!isNaN(addMatches) && addMatches > 0) players[index].matches += addMatches;
+      if (!isNaN(addRuns) && addRuns > 0) players[index].runs += addRuns;
+      if (!isNaN(addWickets) && addWickets > 0) players[index].wickets += addWickets;
+
+      saveToLocal();
+      renderTable();
+    }
+
+    renderTable();
+  </script>
+</body>
+</html>
